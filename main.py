@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 import pandas as pd
 import numpy as np
 from collections import Counter
+import requests
+from io import StringIO
 
 app = FastAPI(title="Poputchik Matcher (FastAPI)", version="1.0.0")
 
@@ -204,13 +206,12 @@ def health():
 
 @app.post("/build_od")
 def api_build_od(req: BuildODRequest):
-    """
-    Load CSV from Google Drive and build heuristic O/D from unordered points.
-    """
     global DF, OD, READY, RIDE_COL, LAT_COL, LON_COL
 
     try:
-        DF = pd.read_csv(CSV_URL)
+        resp = requests.get(CSV_URL)
+        resp.raise_for_status()
+        DF = pd.read_csv(StringIO(resp.text))
     except Exception as e:
         raise HTTPException(500, f"Failed to load CSV from Google Drive: {e}")
 
@@ -239,9 +240,6 @@ def api_build_od(req: BuildODRequest):
 
 @app.post("/match_candidates")
 def api_match_candidates(req: MatchRequest) -> Dict[str, Any]:
-    """
-    Send candidate start/end coords; returns best-matching rides from dataset.
-    """
     global OD, READY
     if not READY or OD is None:
         raise HTTPException(400, "Not ready. Call /build_od first.")
