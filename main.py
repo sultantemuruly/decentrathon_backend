@@ -6,6 +6,7 @@ import numpy as np
 from collections import Counter
 import requests
 from io import StringIO
+import gdown
 
 app = FastAPI(title="Poputchik Matcher (FastAPI)", version="1.0.0")
 
@@ -19,7 +20,8 @@ READY: bool = False
 # Google Drive dataset
 GOOGLE_DRIVE_ID = "1AMyT5zsKbAGyNslMMN1yrYRVzlfgPA2H"
 CSV_URL = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_ID}"
-
+out = "geo_locations_astana_hackathon.csv"
+gdown.download(CSV_URL, out, fuzzy=True)
 # Default columns
 RIDE_COL = "randomized_id"
 LAT_COL = "lat"
@@ -209,11 +211,11 @@ def api_build_od(req: BuildODRequest):
     global DF, OD, READY, RIDE_COL, LAT_COL, LON_COL
 
     try:
-        resp = requests.get(CSV_URL)
-        resp.raise_for_status()
-        DF = pd.read_csv(StringIO(resp.text))
+        DF = pd.read_csv(out)
     except Exception as e:
         raise HTTPException(500, f"Failed to load CSV from Google Drive: {e}")
+
+    print(DF.columns.tolist())
 
     # allow override of column names
     if req.ride_col:
